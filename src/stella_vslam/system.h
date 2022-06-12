@@ -125,6 +125,10 @@ public:
     data::frame create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
     std::shared_ptr<Mat44_t> feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
+    //! Feed a monocular frame to SLAM system from ORB
+    data::frame create_monocular_frame_from_orb(const cv::Mat& descriptors, const std::vector<cv::Keypoint> &keypoints, const double timestamp);
+    std::shared_ptr<Mat44_t> feed_monocular_frame_from_orb(const cv::Mat& descriptors, const std::vector<cv::Keypoint> &keypoints, const double timestamp);
+
     //! Feed a stereo frame to SLAM system
     //! (Note: Left and Right images must be stereo-rectified)
     data::frame create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask = cv::Mat{});

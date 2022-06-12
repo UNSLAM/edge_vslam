@@ -307,6 +307,29 @@ void system::abort_loop_BA() {
     global_optimizer_->abort_loop_BA();
 }
 
+data::frame system::create_monocular_frame_from_orb(const cv::Mat& descriptors, const std::vector<cv::Keypoint> &keypoints, const double timestamp) {
+    frm_obs.descriptors_ = descriptors;
+    keypts_ = keypoints;
+
+    // Undistort keypoints
+    camera_->undistort_keypoints(keypts_, frm_obs.undist_keypts_);
+
+    // Convert to bearing vector
+    camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
+
+    // Assign all the keypoints into grid
+    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+
+    // Detect marker
+    std::unordered_map<unsigned int, data::marker2d> markers_2d;
+    if (marker_detector_) {
+        // TODO: we don't have access to img_gray anymore here...
+        // marker_detector_->detect(img_gray, markers_2d);
+    }
+
+    return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+}
+
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     // color conversion
     cv::Mat img_gray = img;
@@ -453,6 +476,11 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
     return feed_frame(create_monocular_frame(img, timestamp, mask), img);
+}
+
+std::shared_ptr<Mat44_t> system::feed_monocular_frame_from_orb(const cv::Mat& descriptors, const std::vector<cv::Keypoint> &keypoints, const double timestamp) {
+    assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
+    return feed_frame(create_monocular_frame_from_orb(const cv::Mat& descriptors, const std::vector<cv::Keypoint> &keypoints, const double timestamp), cv::Mat());
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
