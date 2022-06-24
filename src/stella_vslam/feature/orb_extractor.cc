@@ -27,6 +27,43 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         return;
     }
 
+    // New code inserted, not part of the original stella_vslam
+    if(in_image.cols() == 48) {
+        // orb from preprocessed image
+        // in_image is a Mat, each row has a concatenation of a 256 bit descriptor 
+        // descriptors = 32 cols
+        // and 4 32 bits values of a keypoint
+        // 4 * 32 = 128 --> 128/8 (8 bits unsigned) = 16
+        // --> 32 + 16 = 48
+        unsigned int howManyFeatures = in_image.rows();
+        //out_descriptors.create(howManyFeatures, 32, CV_8UC1);
+        keypts.reserve(howManyFeatures);
+
+        // Copy descriptors
+        out_descriptors.assign(in_image.getMat().colRange(0,32));
+
+        // Unwrap keypoints        
+        cv::Mat wrappedKeypoints = in_image.getMat().colRange(32,48).clone();
+        for(unsigned int row = 0; row < howManyFeatures; row++) {        
+            const float* wrappedValues = wrappedKeypoints.ptr<float>(row);
+            // std::cout << "K X: " << wrappedValues[0] << "\n";
+            // KeyPoint constructor
+            // https://docs.opencv.org/4.6.0/d2/d29/classcv_1_1KeyPoint.html#a9d81b57ae182dcb3ceac86a6b0211e94
+            keypts.emplace_back(cv::KeyPoint(
+                wrappedValues[0],   // x
+                wrappedValues[1],   // y
+                1.0,
+                wrappedValues[2],   // angle
+                0.0,
+                (int) wrappedValues[3]   // octave
+            ));
+        }
+        // std::cout << "keypoint info: { x: " << keypts[0].pt.x << " y: " << keypts[0].pt.y << " } \n";   
+        std::cout << "RETURNING KEYPOINTS AND DESCRIPTORS" << "\n";
+        return;
+    }
+    // End of new code
+
     // get cv::Mat of image
     const auto image = in_image.getMat();
     assert(image.type() == CV_8UC1);
