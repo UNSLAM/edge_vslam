@@ -40,7 +40,9 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         keypts.reserve(howManyFeatures);
 
         // Copy descriptors
-        out_descriptors.assign(in_image.getMat().colRange(0,32));
+        out_descriptors.create(howManyFeatures, 32, CV_8U);
+        in_image.getMat().colRange(0,32).copyTo(out_descriptors);
+        // out_descriptors.assign(in_image.getMat().colRange(0,32));
 
         // Unwrap keypoints        
         cv::Mat wrappedKeypoints = in_image.getMat().colRange(32,48).clone();
@@ -59,7 +61,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
             ));
         }
         // std::cout << "keypoint info: { x: " << keypts[0].pt.x << " y: " << keypts[0].pt.y << " } \n";   
-        std::cout << "RETURNING KEYPOINTS AND DESCRIPTORS" << "\n";
+        // std::cout << "RETURNING KEYPOINTS AND DESCRIPTORS" << "\n";
         return;
     }
     // End of new code
