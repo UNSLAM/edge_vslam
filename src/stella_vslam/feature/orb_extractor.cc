@@ -28,7 +28,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
     }
 
     // New code inserted, not part of the original stella_vslam
-    if(in_image.cols() == 48) {
+    if(in_image.cols() <= 200) { // == 48
         // orb from preprocessed image
         // in_image is a Mat, each row has a concatenation of a 256 bit descriptor 
         // descriptors = 32 cols
@@ -37,11 +37,14 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         // --> 32 + 16 = 48
         unsigned int howManyFeatures = in_image.rows();
         //out_descriptors.create(howManyFeatures, 32, CV_8UC1);
+        keypts.clear();
         keypts.reserve(howManyFeatures);
 
         // Copy descriptors
-        out_descriptors.create(howManyFeatures, 32, CV_8U);
-        in_image.getMat().colRange(0,32).copyTo(out_descriptors);
+        out_descriptors.create(howManyFeatures, 32, CV_8UC1);
+        cv::Mat outMat = out_descriptors.getMat();
+
+        in_image.getMat().colRange(0,32).copyTo(outMat);
         // out_descriptors.assign(in_image.getMat().colRange(0,32));
 
         // Unwrap keypoints        
@@ -60,8 +63,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
                 (int) wrappedValues[3]   // octave
             ));
         }
-        // std::cout << "keypoint info: { x: " << keypts[0].pt.x << " y: " << keypts[0].pt.y << " } \n";   
-        // std::cout << "RETURNING KEYPOINTS AND DESCRIPTORS" << "\n";
+        std::cout << "keypoint info: { x: " << keypts[0].pt.x << " y: " << keypts[0].pt.y << " angle: " << keypts[0].angle << " octave: " << keypts[0].octave << " } \n";
         return;
     }
     // End of new code

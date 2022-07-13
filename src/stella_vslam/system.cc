@@ -452,7 +452,19 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
+    // Code not part of original stella_vslam
+    if (img.cols < 200)
+    {
+        // Create a black image
+        cv::Mat input = cv::Mat();
+        input.create(720, 1280, CV_8UC1);
+        input.setTo(cv::Scalar::all(0));
+        return feed_frame(create_monocular_frame(img, timestamp, mask), input);
+    }
+    // Code not part of original stella_vslam
+
     return feed_frame(create_monocular_frame(img, timestamp, mask), img);
+
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
