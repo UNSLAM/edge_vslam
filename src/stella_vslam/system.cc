@@ -457,7 +457,8 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
     {
         // Create a black image
         cv::Mat input = cv::Mat();
-        input.create(720, 1280, CV_8UC1);
+        
+        input.create(camera_->rows_, camera_->cols_, CV_8UC1);
         input.setTo(cv::Scalar::all(0));
         return feed_frame(create_monocular_frame(img, timestamp, mask), input);
     }
