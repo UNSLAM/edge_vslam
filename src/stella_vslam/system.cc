@@ -310,7 +310,12 @@ void system::abort_loop_BA() {
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     // color conversion
     cv::Mat img_gray = img;
-    util::convert_to_grayscale(img_gray, camera_->color_order_);
+
+    // New code inserted, not part of the original stella_vslam
+    // Don't convert to grayscale if the image that arrives has wrapped keypoints and descriptors
+    if (img_gray.cols > 200)
+    // End of new code
+        util::convert_to_grayscale(img_gray, camera_->color_order_);
 
     data::frame_observation frm_obs;
 
