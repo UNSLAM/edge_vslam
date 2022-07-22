@@ -312,10 +312,9 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
     cv::Mat img_gray = img;
 
     // New code inserted, not part of the original stella_vslam
-    // Don't convert to grayscale if the image that arrives has wrapped keypoints and descriptors
-    if (img_gray.cols > 200)
+    // Image wont be converted to grayscale if what arrives are the wrapped kpts and descriptors
     // End of new code
-        util::convert_to_grayscale(img_gray, camera_->color_order_);
+    util::convert_to_grayscale(img_gray, camera_->color_order_);
 
     data::frame_observation frm_obs;
 
