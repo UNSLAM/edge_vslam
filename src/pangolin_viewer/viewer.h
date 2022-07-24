@@ -179,6 +179,7 @@ private:
     std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_x_;
     std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_y_;
     std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_z_;
+    std::unique_ptr<pangolin::Var<double>> menu_distance_;
     // End of new code
 
     // camera renderer

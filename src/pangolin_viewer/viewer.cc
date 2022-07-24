@@ -147,6 +147,7 @@ void viewer::create_menu_panel() {
     menu_clicked_world_position_x_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.X", "0"));
     menu_clicked_world_position_y_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.Y", "0"));
     menu_clicked_world_position_z_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.Z", "0"));
+    menu_distance_ = std::unique_ptr<pangolin::Var<double>>(new pangolin::Var<double>("menu.D", 0));
 }
 
 void viewer::follow_camera(const pangolin::OpenGlMatrix& gl_cam_pose_wc) {
@@ -341,10 +342,35 @@ void viewer::draw_landmarks() {
 void viewer::print_click_pos(const pangolin::Handler3D& handler) {
     if (current_click_pos != handler.Selected_P_w())
     {
+        std::vector<std::shared_ptr<stella_vslam::data::landmark>> landmarks;
+        std::set<std::shared_ptr<stella_vslam::data::landmark>> local_landmarks;
+
+        map_publisher_->get_landmarks(landmarks, local_landmarks);
+        
         current_click_pos = handler.Selected_P_w();
         *menu_clicked_world_position_x_ = std::to_string(current_click_pos.x());
         *menu_clicked_world_position_y_ = std::to_string(current_click_pos.y());
-        *menu_clicked_world_position_z_ = std::to_string(current_click_pos.z());        
+        *menu_clicked_world_position_z_ = std::to_string(current_click_pos.z());
+
+        double min_distance = std::numeric_limits<double>::infinity();
+        Eigen::Vector3d closest_landmark;  
+
+        // Find closest landmark
+        for (const auto& lm : landmarks) {
+            if (!lm || lm->will_be_erased()) {
+                continue;
+            }
+            const stella_vslam::Vec3_t pos_w = lm->get_pos_in_world();
+
+            double distanceSquared = std::pow(current_click_pos.x() - pos_w.x(), 2) + std::pow(current_click_pos.y() - pos_w.y(), 2) 
+            + std::pow(current_click_pos.z() - pos_w.z(), 2);
+            if (distanceSquared < min_distance)
+            {
+                min_distance = distanceSquared;
+                closest_landmark = pos_w;
+            }
+        }
+        *menu_distance_ = std::sqrt(min_distance);
     }
 }
 // End of new code
