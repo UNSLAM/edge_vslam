@@ -27,7 +27,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         return;
     }
 
-    // New code inserted, not part of the original stella_vslam
+    // Code not part of the original stella_vslam
     if(in_image.cols() <= 200) {
         // orb from preprocessed image
         // in_image is a Mat, each row has a concatenation of a 256 bit descriptor 

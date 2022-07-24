@@ -130,6 +130,17 @@ private:
      */
     void check_state_transition();
 
+    // Code not part of original stella_vslam
+    /**
+     * @brief Print clicked world position
+     * 
+     * @param handler 
+     */
+    void print_click_pos(const pangolin::Handler3D& handler);
+    Eigen::Vector3d current_click_pos;
+    // End of new code
+
+
     //! system
     stella_vslam::system* system_;
     //! frame publisher
@@ -164,6 +175,11 @@ private:
     std::unique_ptr<pangolin::Var<bool>> menu_terminate_;
     std::unique_ptr<pangolin::Var<float>> menu_frm_size_;
     std::unique_ptr<pangolin::Var<float>> menu_lm_size_;
+    // Code not part of original stella_vslam
+    std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_x_;
+    std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_y_;
+    std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_z_;
+    // End of new code
 
     // camera renderer
     std::unique_ptr<pangolin::OpenGlRenderState> s_cam_;

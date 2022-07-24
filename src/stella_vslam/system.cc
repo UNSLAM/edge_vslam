@@ -311,7 +311,7 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
     // color conversion
     cv::Mat img_gray = img;
 
-    // New code inserted, not part of the original stella_vslam
+    // Code not part of original stella_vslam
     // Image wont be converted to grayscale if what arrives are the wrapped kpts and descriptors
     // End of new code
     util::convert_to_grayscale(img_gray, camera_->color_order_);
@@ -466,7 +466,7 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
         input.setTo(cv::Scalar::all(0));
         return feed_frame(create_monocular_frame(img, timestamp, mask), input);
     }
-    // Code not part of original stella_vslam
+    // End of new code
 
     return feed_frame(create_monocular_frame(img, timestamp, mask), img);
 

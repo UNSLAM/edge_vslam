@@ -47,10 +47,14 @@ void viewer::run() {
                                    map_viewer_width_ / 2, map_viewer_height_ / 2, 0.1, 1e6),
         pangolin::ModelViewLookAt(viewpoint_x_, viewpoint_y_, viewpoint_z_, 0, 0, 0, 0.0, -1.0, 0.0)));
 
+    // Code not part of original stella_vslam
+    pangolin::Handler3D * handler = new pangolin::Handler3D(*s_cam_);
+    // End of new code
+
     // create map window
     pangolin::View& d_cam = pangolin::CreateDisplay()
                                 .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -map_viewer_width_ / map_viewer_height_)
-                                .SetHandler(new pangolin::Handler3D(*s_cam_));
+                                .SetHandler(handler);                        
 
     // create menu panel
     create_menu_panel();
@@ -85,6 +89,10 @@ void viewer::run() {
         draw_keyframes();
         // draw landmarks
         draw_landmarks();
+
+        // Code not part of original stella_vslam
+        print_click_pos(*handler);
+        // End of new code
 
         pangolin::FinishFrame();
 
@@ -136,6 +144,9 @@ void viewer::create_menu_panel() {
     menu_terminate_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Terminate", false, false));
     menu_frm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Frame Size", 1.0, 1e-1, 1e1, true));
     menu_lm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Landmark Size", 1.0, 1e-1, 1e1, true));
+    menu_clicked_world_position_x_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.X", "0"));
+    menu_clicked_world_position_y_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.Y", "0"));
+    menu_clicked_world_position_z_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.Z", "0"));
 }
 
 void viewer::follow_camera(const pangolin::OpenGlMatrix& gl_cam_pose_wc) {
@@ -325,6 +336,18 @@ void viewer::draw_landmarks() {
 
     glEnd();
 }
+
+// Code not part of original stella_vslam
+void viewer::print_click_pos(const pangolin::Handler3D& handler) {
+    if (current_click_pos != handler.Selected_P_w())
+    {
+        current_click_pos = handler.Selected_P_w();
+        *menu_clicked_world_position_x_ = std::to_string(current_click_pos.x());
+        *menu_clicked_world_position_y_ = std::to_string(current_click_pos.y());
+        *menu_clicked_world_position_z_ = std::to_string(current_click_pos.z());        
+    }
+}
+// End of new code
 
 void viewer::draw_camera(const pangolin::OpenGlMatrix& gl_cam_pose_wc, const float width) const {
     glPushMatrix();
