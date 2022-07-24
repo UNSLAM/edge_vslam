@@ -28,6 +28,11 @@ public:
     //! local_landmark color
     std::array<float, 3> local_lm_{};
 
+    // Code not part of original stella_vslam
+    //! selected landmark color
+    std::array<float, 3> selected_lm_{};
+    // End of new code
+
 private:
     void set_color_as_black();
 

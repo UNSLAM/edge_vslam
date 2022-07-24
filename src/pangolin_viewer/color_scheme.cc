@@ -25,6 +25,7 @@ void color_scheme::set_color_as_black() {
     graph_line_ = {{0.7f, 0.7f, 1.0f, 0.4f}};
     lm_ = {{0.9f, 0.9f, 0.9f}};
     local_lm_ = {{1.0f, 0.1f, 0.1f}};
+    selected_lm_ = {{0.6f, 1.0f, 0.09f}};
 }
 
 void color_scheme::set_color_as_purple() {
@@ -35,6 +36,7 @@ void color_scheme::set_color_as_purple() {
     graph_line_ = {{0.7f, 0.7f, 1.0f, 0.4f}};
     lm_ = {{0.9f, 0.9f, 0.9f}};
     local_lm_ = {{0.0f, 1.0f, 0.0f}};
+    selected_lm_ = {{0.6f, 1.0f, 0.09f}};
 }
 
 bool color_scheme::stricmp(const std::string& str1, const std::string& str2) {

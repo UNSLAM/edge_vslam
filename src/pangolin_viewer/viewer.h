@@ -136,8 +136,7 @@ private:
      * 
      * @param handler 
      */
-    void print_click_pos(const pangolin::Handler3D& handler);
-    Eigen::Vector3d current_click_pos;
+    void find_closest_landmark_to_click(const pangolin::Handler3D& handler);
     // End of new code
 
 
@@ -180,6 +179,9 @@ private:
     std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_y_;
     std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_z_;
     std::unique_ptr<pangolin::Var<double>> menu_distance_;
+
+    Eigen::Vector3d selected_landmark_pos;
+    Eigen::Vector3d current_click_pos;
     // End of new code
 
     // camera renderer

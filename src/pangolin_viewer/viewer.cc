@@ -91,7 +91,7 @@ void viewer::run() {
         draw_landmarks();
 
         // Code not part of original stella_vslam
-        print_click_pos(*handler);
+        find_closest_landmark_to_click(*handler);
         // End of new code
 
         pangolin::FinishFrame();
@@ -312,6 +312,7 @@ void viewer::draw_landmarks() {
         if (*menu_show_local_map_ && local_landmarks.count(lm)) {
             continue;
         }
+
         const stella_vslam::Vec3_t pos_w = lm->get_pos_in_world();
         glVertex3fv(pos_w.cast<float>().eval().data());
     }
@@ -336,21 +337,26 @@ void viewer::draw_landmarks() {
     }
 
     glEnd();
+
+    // Code not part of original stella_vslam
+    glPointSize(point_size_ * 5);
+    glBegin(GL_POINTS);
+    glColor3fv(cs_.selected_lm_.data());
+    glVertex3fv(selected_landmark_pos.cast<float>().eval().data());
+    glEnd();
+    // End of new code
 }
 
 // Code not part of original stella_vslam
-void viewer::print_click_pos(const pangolin::Handler3D& handler) {
+void viewer::find_closest_landmark_to_click(const pangolin::Handler3D& handler) {
     if (current_click_pos != handler.Selected_P_w())
     {
+        current_click_pos = handler.Selected_P_w();
+
         std::vector<std::shared_ptr<stella_vslam::data::landmark>> landmarks;
         std::set<std::shared_ptr<stella_vslam::data::landmark>> local_landmarks;
 
-        map_publisher_->get_landmarks(landmarks, local_landmarks);
-        
-        current_click_pos = handler.Selected_P_w();
-        *menu_clicked_world_position_x_ = std::to_string(current_click_pos.x());
-        *menu_clicked_world_position_y_ = std::to_string(current_click_pos.y());
-        *menu_clicked_world_position_z_ = std::to_string(current_click_pos.z());
+        map_publisher_->get_landmarks(landmarks, local_landmarks);        
 
         double min_distance = std::numeric_limits<double>::infinity();
         Eigen::Vector3d closest_landmark;  
@@ -370,6 +376,10 @@ void viewer::print_click_pos(const pangolin::Handler3D& handler) {
                 closest_landmark = pos_w;
             }
         }
+        selected_landmark_pos = closest_landmark;
+        *menu_clicked_world_position_x_ = std::to_string(closest_landmark.x());
+        *menu_clicked_world_position_y_ = std::to_string(closest_landmark.y());
+        *menu_clicked_world_position_z_ = std::to_string(closest_landmark.z());
         *menu_distance_ = std::sqrt(min_distance);
     }
 }
