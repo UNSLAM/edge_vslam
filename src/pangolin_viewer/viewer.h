@@ -55,6 +55,15 @@ public:
      */
     bool is_terminated();
 
+    // Code not part of original stella_vslam
+    /**
+     * @brief Takes an screenshot of the pangolin renderer
+     * 
+     * @param filename: name of the file to be saved
+     */
+    void take_screenshot(std::string& filename);
+    // End of new code
+
 private:
     /**
      * Create menu panel
@@ -182,6 +191,9 @@ private:
 
     Eigen::Vector3d selected_landmark_pos;
     Eigen::Vector3d current_click_pos;
+
+    bool save_screenshot = false;
+    std::string filename;
     // End of new code
 
     // camera renderer

@@ -52,9 +52,11 @@ void viewer::run() {
     // End of new code
 
     // create map window
+    // Code not part of original stella_vslam
     pangolin::View& d_cam = pangolin::CreateDisplay()
                                 .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -map_viewer_width_ / map_viewer_height_)
-                                .SetHandler(handler);                        
+                                .SetHandler(handler);                 
+    // End of new code                    
 
     // create menu panel
     create_menu_panel();
@@ -93,7 +95,7 @@ void viewer::run() {
         // Code not part of original stella_vslam
         find_closest_landmark_to_click(*handler);
         // End of new code
-
+    
         pangolin::FinishFrame();
 
         // 2. draw the current frame image
@@ -116,6 +118,12 @@ void viewer::run() {
         }
 
         if (terminate_is_requested()) {
+
+            if (save_screenshot)
+            {
+                d_cam.SaveOnRender(filename);
+                pangolin::FinishFrame();
+            }
             break;
         }
     }
@@ -339,6 +347,7 @@ void viewer::draw_landmarks() {
     glEnd();
 
     // Code not part of original stella_vslam
+    // TODO: Add slider in menu?
     glPointSize(point_size_ * 5);
     glBegin(GL_POINTS);
     glColor3fv(cs_.selected_lm_.data());
@@ -377,11 +386,24 @@ void viewer::find_closest_landmark_to_click(const pangolin::Handler3D& handler) 
             }
         }
         selected_landmark_pos = closest_landmark;
+        // std::cout << "Curr: " << current_click_pos << "\n";
+        // std::cout << "Sel: " << selected_landmark_pos << "\n";
         *menu_clicked_world_position_x_ = std::to_string(closest_landmark.x());
         *menu_clicked_world_position_y_ = std::to_string(closest_landmark.y());
         *menu_clicked_world_position_z_ = std::to_string(closest_landmark.z());
         *menu_distance_ = std::sqrt(min_distance);
     }
+}
+
+void viewer::take_screenshot(std::string& received_filename) {
+    if (received_filename.empty()) {
+        std::cout << "Filename shouldn't be empty" << "\n";
+        return;
+    }   
+    
+    std::cout << "take" << "\n";
+    save_screenshot = true;
+    filename = received_filename;
 }
 // End of new code
 
