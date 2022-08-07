@@ -166,6 +166,7 @@ private:
     const float point_size_;
     const float camera_size_;
     const float camera_line_width_;
+    const unsigned int menu_width_;
 
     const color_scheme cs_;
 
@@ -181,6 +182,8 @@ private:
     std::unique_ptr<pangolin::Var<bool>> menu_pause_;
     std::unique_ptr<pangolin::Var<bool>> menu_reset_;
     std::unique_ptr<pangolin::Var<bool>> menu_terminate_;
+    std::unique_ptr<pangolin::Var<int>> menu_min_shared_lms_;
+    std::unique_ptr<pangolin::Var<std::string>> menu_kf_id_;
     std::unique_ptr<pangolin::Var<float>> menu_frm_size_;
     std::unique_ptr<pangolin::Var<float>> menu_lm_size_;
     // Code not part of original stella_vslam

@@ -53,6 +53,67 @@ bool global_optimization_module::loop_detector_is_enabled() const {
     return loop_detector_->is_enabled();
 }
 
+bool global_optimization_module::request_loop_closure(unsigned int keyfrm1_id, unsigned int keyfrm2_id) {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    if (loop_closure_is_requested_) {
+        spdlog::warn("Can not process new loop closure request while previous was not finished");
+        return false;
+    }
+    loop_closure_is_requested_ = true;
+    loop_closure_request_.keyfrm1_id_ = keyfrm1_id;
+    loop_closure_request_.keyfrm2_id_ = keyfrm2_id;
+    return true;
+}
+
+bool global_optimization_module::loop_closure_is_requested() {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    return loop_closure_is_requested_;
+}
+
+loop_closure_request& global_optimization_module::get_loop_closure_request() {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    return loop_closure_request_;
+}
+
+void global_optimization_module::finish_loop_closure_request() {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    loop_closure_is_requested_ = false;
+}
+
+bool global_optimization_module::loop_closure(const loop_closure_request& request) {
+    {
+        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        unsigned int curr_keyfrm_id = std::max(request.keyfrm1_id_, request.keyfrm2_id_);
+        unsigned int candidate_keyfrm_id = std::min(request.keyfrm1_id_, request.keyfrm2_id_);
+        // not to be removed during loop detection and correction
+        cur_keyfrm_ = map_db_->get_keyframe(curr_keyfrm_id);
+        if (cur_keyfrm_ == nullptr) {
+            spdlog::info("keyframe {} not found", curr_keyfrm_id);
+            return false;
+        }
+        cur_keyfrm_->set_not_to_be_erased();
+        loop_detector_->set_current_keyframe(cur_keyfrm_);
+        auto candidate_keyfrm = map_db_->get_keyframe(candidate_keyfrm_id);
+        if (candidate_keyfrm == nullptr) {
+            spdlog::info("candidate keyframe {} not found", candidate_keyfrm_id);
+            return false;
+        }
+        loop_detector_->add_loop_candidate(candidate_keyfrm);
+
+        // validate candidates and select ONE candidate from them
+        if (!loop_detector_->validate_candidates()) {
+            // could not find
+            // allow the removal of the current keyframe
+            cur_keyfrm_->set_to_be_erased();
+            return false;
+        }
+    }
+
+    correct_loop();
+    finish_loop_closure_request();
+    return true;
+}
+
 void global_optimization_module::run() {
     spdlog::info("start global optimization module");
 
@@ -66,6 +127,11 @@ void global_optimization_module::run() {
             // terminate and break
             terminate();
             break;
+        }
+
+        // check if loop closure is requested
+        if (loop_closure_is_requested()) {
+            loop_closure(get_loop_closure_request());
         }
 
         // check if pause is requested
@@ -159,10 +225,6 @@ void global_optimization_module::correct_loop() {
     }
     // wait till the mapping module pauses
     future_pause.get();
-
-    // 0-2. update the graph
-
-    cur_keyfrm_->graph_node_->update_connections();
 
     // 1. compute the Sim3 of the covisibilities of the current keyframe whose Sim3 is already estimated by the loop detector
     //    then, the covisibilities are moved to the corrected positions
@@ -324,9 +386,6 @@ void global_optimization_module::correct_covisibility_keyframes(const module::ke
         const Vec3_t trans_nw = Sim3_nw_after_correction.translation() / s_nw;
         const Mat44_t cam_pose_nw = util::converter::to_eigen_pose(rot_nw, trans_nw);
         neighbor->set_pose_cw(cam_pose_nw);
-
-        // update graph
-        neighbor->graph_node_->update_connections();
     }
 }
 
@@ -432,7 +491,7 @@ auto global_optimization_module::extract_new_connections(const std::vector<std::
         const auto neighbors_before_update = covisibility->graph_node_->get_covisibilities();
 
         // call update_connections()
-        covisibility->graph_node_->update_connections();
+        covisibility->graph_node_->update_connections(map_db_->get_min_num_shared_lms());
         // acquire neighbors AFTER loop fusion
         new_connections[covisibility] = covisibility->graph_node_->get_connected_keyframes();
 
@@ -449,11 +508,13 @@ auto global_optimization_module::extract_new_connections(const std::vector<std::
     return new_connections;
 }
 
-std::future<void> global_optimization_module::async_reset() {
+std::shared_future<void> global_optimization_module::async_reset() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     reset_is_requested_ = true;
-    promises_reset_.emplace_back();
-    return promises_reset_.back().get_future();
+    if (!future_reset_.valid()) {
+        future_reset_ = promise_reset_.get_future().share();
+    }
+    return future_reset_;
 }
 
 bool global_optimization_module::reset_is_requested() const {
@@ -467,17 +528,18 @@ void global_optimization_module::reset() {
     keyfrms_queue_.clear();
     loop_detector_->set_loop_correct_keyframe_id(0);
     reset_is_requested_ = false;
-    for (auto& promise : promises_reset_) {
-        promise.set_value();
-    }
-    promises_reset_.clear();
+    promise_reset_.set_value();
+    promise_reset_ = std::promise<void>();
+    future_reset_ = std::shared_future<void>();
 }
 
-std::future<void> global_optimization_module::async_pause() {
+std::shared_future<void> global_optimization_module::async_pause() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
-    promises_pause_.emplace_back();
-    return promises_pause_.back().get_future();
+    if (!future_pause_.valid()) {
+        future_pause_ = promise_pause_.get_future().share();
+    }
+    return future_pause_;
 }
 
 bool global_optimization_module::pause_is_requested() const {
@@ -494,10 +556,9 @@ void global_optimization_module::pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause global optimization module");
     is_paused_ = true;
-    for (auto& promise : promises_pause_) {
-        promise.set_value();
-    }
-    promises_pause_.clear();
+    promise_pause_.set_value();
+    promise_pause_ = std::promise<void>();
+    future_pause_ = std::shared_future<void>();
 }
 
 void global_optimization_module::resume() {
@@ -515,11 +576,13 @@ void global_optimization_module::resume() {
     spdlog::info("resume global optimization module");
 }
 
-std::future<void> global_optimization_module::async_terminate() {
+std::shared_future<void> global_optimization_module::async_terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
-    promises_terminate_.emplace_back();
-    return promises_terminate_.back().get_future();
+    if (!future_terminate_.valid()) {
+        future_terminate_ = promise_terminate_.get_future().share();
+    }
+    return future_terminate_;
 }
 
 bool global_optimization_module::is_terminated() const {
@@ -535,10 +598,9 @@ bool global_optimization_module::terminate_is_requested() const {
 void global_optimization_module::terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     is_terminated_ = true;
-    for (auto& promise : promises_terminate_) {
-        promise.set_value();
-    }
-    promises_terminate_.clear();
+    promise_terminate_.set_value();
+    promise_terminate_ = std::promise<void>();
+    future_terminate_ = std::shared_future<void>();
 }
 
 bool global_optimization_module::loop_BA_is_running() const {

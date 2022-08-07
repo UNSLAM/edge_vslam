@@ -69,13 +69,13 @@ public:
     // management for reset process
 
     //! Request to reset the mapping module
-    std::future<void> async_reset();
+    std::shared_future<void> async_reset();
 
     //-----------------------------------------
     // management for pause process
 
     //! Request to pause the mapping module
-    std::future<void> async_pause();
+    std::shared_future<void> async_pause();
 
     //! Check if the mapping module is requested to be paused or not
     bool pause_is_requested() const;
@@ -90,7 +90,7 @@ public:
     // management for terminate process
 
     //! Request to terminate the mapping module
-    std::future<void> async_terminate();
+    std::shared_future<void> async_terminate();
 
     //! Check if the mapping module is terminated or not
     bool is_terminated() const;
@@ -133,12 +133,8 @@ private:
     //! Update the new keyframe
     void update_new_keyframe();
 
-    //! Get the first and second order covisibilities of current keyframe
-    nondeterministic::unordered_set<std::shared_ptr<data::keyframe>> get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                                                     const unsigned int second_order_thr);
-
     //! Fuse duplicated landmarks between current keyframe and covisibility keyframes
-    void fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
+    void fuse_landmark_duplication(const std::vector<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
                                    nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms);
 
     //! Set is_idle (True when no keyframes are being processed.)
@@ -150,8 +146,11 @@ private:
     //! mutex for access to reset procedure
     mutable std::mutex mtx_reset_;
 
-    //! promises for reset
-    std::vector<std::promise<void>> promises_reset_;
+    //! promise for reset
+    std::promise<void> promise_reset_;
+
+    //! future for reset
+    std::shared_future<void> future_reset_;
 
     //! Check and execute reset
     bool reset_is_requested() const;
@@ -168,8 +167,11 @@ private:
     //! mutex for access to pause procedure
     mutable std::mutex mtx_pause_;
 
-    //! promises for pause
-    std::vector<std::promise<void>> promises_pause_;
+    //! promise for pause
+    std::promise<void> promise_pause_;
+
+    //! future for pause
+    std::shared_future<void> future_pause_;
 
     //! Pause the mapping module
     void pause();
@@ -185,8 +187,11 @@ private:
     //! mutex for access to terminate procedure
     mutable std::mutex mtx_terminate_;
 
-    //! promises for terminate
-    std::vector<std::promise<void>> promises_terminate_;
+    //! promise for terminate
+    std::promise<void> promise_terminate_;
+
+    //! future for terminate
+    std::shared_future<void> future_terminate_;
 
     //! Check if termination is requested or not
     bool terminate_is_requested() const;
@@ -263,6 +268,18 @@ private:
 
     //! If the size of the queue exceeds this threshold, skip the localBA
     const unsigned int queue_threshold_ = 2;
+
+    //! if true, enable interruption of landmark generation
+    const bool enable_interruption_of_landmark_generation_ = true;
+
+    //! if true, enable interruption before local BA
+    const bool enable_interruption_before_local_BA_ = true;
+
+    //! Number of keyframes used for landmark generation
+    const unsigned int num_covisibilities_for_landmark_generation_ = 10;
+
+    //! Number of keyframes used for landmark fusion
+    const unsigned int num_covisibilities_for_landmark_fusion_ = 10;
 };
 
 } // namespace stella_vslam

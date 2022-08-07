@@ -16,38 +16,15 @@
 
 #include <spdlog/spdlog.h>
 
-namespace {
-using namespace stella_vslam;
-
-double get_reloc_distance_threshold(const YAML::Node& yaml_node) {
-    spdlog::debug("load maximum distance threshold where close keyframes could be found");
-    return yaml_node["reloc_distance_threshold"].as<double>(0.2);
-}
-
-double get_reloc_angle_threshold(const YAML::Node& yaml_node) {
-    spdlog::debug("load maximum angle threshold between given pose and close keyframes");
-    return yaml_node["reloc_angle_threshold"].as<double>(0.45);
-}
-
-double get_enable_auto_relocalization(const YAML::Node& yaml_node) {
-    return yaml_node["enable_auto_relocalization"].as<bool>(true);
-}
-
-double get_use_robust_matcher_for_relocalization_request(const YAML::Node& yaml_node) {
-    return yaml_node["use_robust_matcher_for_relocalization_request"].as<bool>(false);
-}
-
-} // unnamed namespace
-
 namespace stella_vslam {
 
 tracking_module::tracking_module(const std::shared_ptr<config>& cfg, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(cfg->camera_),
-      reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
-      reloc_angle_threshold_(get_reloc_angle_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
-      enable_auto_relocalization_(get_enable_auto_relocalization(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
-      use_robust_matcher_for_relocalization_request_(get_use_robust_matcher_for_relocalization_request(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      reloc_distance_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_distance_threshold"].as<double>(0.2)),
+      reloc_angle_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_angle_threshold"].as<double>(0.45)),
+      enable_auto_relocalization_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_auto_relocalization"].as<bool>(true)),
+      use_robust_matcher_for_relocalization_request_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10, initializer_.get_use_fixed_seed()),
@@ -377,12 +354,6 @@ void tracking_module::replace_landmarks_in_last_frm(nondeterministic::unordered_
         if (!lm) {
             continue;
         }
-    }
-    for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
-        const auto& lm = last_frm_.get_landmark(idx);
-        if (!lm) {
-            continue;
-        }
 
         if (replaced_lms.count(lm)) {
             auto replaced_lm = replaced_lms[lm];
@@ -601,14 +572,19 @@ std::future<void> tracking_module::async_start_keyframe_insertion() {
     return future_stop_keyframe_insertion;
 }
 
-std::future<void> tracking_module::async_pause() {
+std::shared_future<void> tracking_module::async_pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     pause_is_requested_ = true;
-    promises_pause_.emplace_back();
-    std::future<void> future_pause = promises_pause_.back().get_future();
+    if (!future_pause_.valid()) {
+        future_pause_ = promise_pause_.get_future().share();
+    }
+
+    std::shared_future<void> future_pause = future_pause_;
     if (is_paused_) {
-        promises_pause_.back().set_value();
-        promises_pause_.pop_back();
+        promise_pause_.set_value();
+        // Clear request
+        promise_pause_ = std::promise<void>();
+        future_pause_ = std::shared_future<void>();
     }
     return future_pause;
 }
@@ -637,10 +613,9 @@ bool tracking_module::pause_if_requested() {
     if (pause_is_requested_) {
         is_paused_ = true;
         spdlog::info("pause tracking module");
-        for (auto& promise : promises_pause_) {
-            promise.set_value();
-        }
-        promises_pause_.clear();
+        promise_pause_.set_value();
+        promise_pause_ = std::promise<void>();
+        future_pause_ = std::shared_future<void>();
         return true;
     }
     else {

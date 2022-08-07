@@ -94,9 +94,11 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     }
 #endif
 
+    const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
+
     // database
     cam_db_ = new data::camera_database(camera_);
-    map_db_ = new data::map_database();
+    map_db_ = new data::map_database(system_params["min_num_shared_lms"].as<unsigned int>(15));
     bow_db_ = new data::bow_database(bow_vocab_);
 
     // frame and map publisher
@@ -104,7 +106,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     map_publisher_ = std::shared_ptr<publish::map_publisher>(new publish::map_publisher(cfg_, map_db_));
 
     // map I/O
-    auto map_format = util::yaml_optional_ref(cfg->yaml_node_, "System")["map_format"].as<std::string>("msgpack");
+    auto map_format = system_params["map_format"].as<std::string>("msgpack");
     if (map_format == "sqlite3") {
         map_database_io_ = std::make_shared<io::map_database_io_sqlite3>();
     }
@@ -297,6 +299,10 @@ void system::disable_loop_detector() {
 
 bool system::loop_detector_is_enabled() const {
     return global_optimizer_->loop_detector_is_enabled();
+}
+
+bool system::request_loop_closure(int keyfrm1_id, int keyfrm2_id) {
+    return global_optimizer_->request_loop_closure(keyfrm1_id, keyfrm2_id);
 }
 
 bool system::loop_BA_is_running() const {
@@ -493,7 +499,7 @@ std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Ma
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     frame_publisher_->update(tracker_->curr_frm_.get_landmarks(),
-                             mapper_->is_paused(),
+                             !mapper_->is_paused(),
                              tracker_->tracking_state_,
                              keypts_,
                              img,
