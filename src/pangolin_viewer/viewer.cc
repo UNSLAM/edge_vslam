@@ -70,7 +70,7 @@ void viewer::run() {
     // create map window
     // Code not part of original stella_vslam
     pangolin::View& d_cam = pangolin::CreateDisplay()
-                                .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -map_viewer_width_ / map_viewer_height_)
+                                .SetBounds(0.0, 1.0, pangolin::Attach::Pix(230), 1.0, -map_viewer_width_ / map_viewer_height_)
                                 .SetHandler(handler);                 
     // End of new code                    
 
@@ -376,6 +376,15 @@ void viewer::draw_landmarks() {
 
     glEnd();
 
+    // Code not part of original stella_vslam
+    // TODO: Add slider in menu?
+    glPointSize(point_size_ * 5);
+    glColor3fv(cs_.selected_lm_.data());
+    glBegin(GL_POINTS);
+    glVertex3fv(selected_landmark_pos.cast<float>().eval().data());
+    glEnd();
+    // End of new code
+
     if (!*menu_show_local_map_) {
         return;
     }
@@ -394,15 +403,6 @@ void viewer::draw_landmarks() {
     }
 
     glEnd();
-
-    // Code not part of original stella_vslam
-    // TODO: Add slider in menu?
-    glPointSize(point_size_ * 5);
-    glBegin(GL_POINTS);
-    glColor3fv(cs_.selected_lm_.data());
-    glVertex3fv(selected_landmark_pos.cast<float>().eval().data());
-    glEnd();
-    // End of new code
 }
 
 // Code not part of original stella_vslam
@@ -450,7 +450,6 @@ void viewer::take_screenshot(std::string& received_filename) {
         return;
     }   
     
-    std::cout << "take" << "\n";
     save_screenshot = true;
     filename = received_filename;
 }
