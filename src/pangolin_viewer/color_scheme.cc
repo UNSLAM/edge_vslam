@@ -29,6 +29,7 @@ void color_scheme::set_color_as_black() {
     lm_ = {{0.9f, 0.9f, 0.9f}};
     local_lm_ = {{1.0f, 0.1f, 0.1f}};
     selected_lm_ = {{0.6f, 1.0f, 0.09f}};
+    trajectory_point_ = {{1.0f, 0.0f, 1.0f}};
 }
 
 void color_scheme::set_color_as_purple() {
@@ -43,6 +44,7 @@ void color_scheme::set_color_as_purple() {
     lm_ = {{0.9f, 0.9f, 0.9f}};
     local_lm_ = {{0.0f, 1.0f, 0.0f}};
     selected_lm_ = {{0.6f, 1.0f, 0.09f}};
+    trajectory_point_ = {{1.0f, 0.0f, 1.0f}};
 }
 
 bool color_scheme::stricmp(const std::string& str1, const std::string& str2) {

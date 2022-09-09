@@ -62,6 +62,13 @@ public:
      * @param filename: name of the file to be saved
      */
     void take_screenshot(std::string& filename);
+
+    /**
+     * @brief Sets trajectory points
+     * 
+     * @param points: serialized array of points, 3 positions of the array make a pos_w point
+     */
+    void load_trajectory_points(std::vector<float> points);
     // End of new code
 
 private:
@@ -141,11 +148,18 @@ private:
 
     // Code not part of original stella_vslam
     /**
-     * @brief Print clicked world position
+     * @brief Paint the closest landmark to the mouse cursor
      * 
      * @param handler 
      */
     void find_closest_landmark_to_click(const pangolin::Handler3D& handler);
+
+    /**
+     * @brief Draw the user's trajectory points
+     * 
+     * @param handler 
+     */
+    void draw_trajectory_points();
     // End of new code
 
 
@@ -186,6 +200,7 @@ private:
     std::unique_ptr<pangolin::Var<std::string>> menu_kf_id_;
     std::unique_ptr<pangolin::Var<float>> menu_frm_size_;
     std::unique_ptr<pangolin::Var<float>> menu_lm_size_;
+    
     // Code not part of original stella_vslam
     std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_x_;
     std::unique_ptr<pangolin::Var<std::string>> menu_clicked_world_position_y_;
@@ -194,6 +209,7 @@ private:
 
     Eigen::Vector3d selected_landmark_pos;
     Eigen::Vector3d current_click_pos;
+    std::vector<float> trajectory_points;
 
     bool save_screenshot = false;
     std::string filename;

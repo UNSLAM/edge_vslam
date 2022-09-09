@@ -34,6 +34,7 @@ public:
     // Code not part of original stella_vslam
     //! selected landmark color
     std::array<float, 3> selected_lm_{};
+    std::array<float, 3> trajectory_point_{};
     // End of new code
 
 private:

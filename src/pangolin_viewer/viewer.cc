@@ -110,6 +110,7 @@ void viewer::run() {
 
         // Code not part of original stella_vslam
         find_closest_landmark_to_click(*handler);
+        draw_trajectory_points();
         // End of new code
     
         pangolin::FinishFrame();
@@ -452,6 +453,26 @@ void viewer::take_screenshot(std::string& received_filename) {
     
     save_screenshot = true;
     filename = received_filename;
+}
+
+void viewer::load_trajectory_points(std::vector<float> points) {
+    trajectory_points = points;
+}
+
+void viewer::draw_trajectory_points() {    
+    if (!trajectory_points.size())
+        return;
+    for (unsigned int i = 0; i < trajectory_points.size(); i+=3)
+    {   
+        glPointSize(point_size_ * 10);
+        glColor3fv(cs_.trajectory_point_.data());
+        glBegin(GL_POINTS);
+        glVertex3f(trajectory_points[i], trajectory_points[i+1], trajectory_points[i+2]);
+        glEnd();
+        // // Draw line between current point and next point
+        // draw_line(trajectory_points[i], trajectory_points[i+1], trajectory_points[i+2],
+        //     trajectory_points[i+3],trajectory_points[i+4],trajectory_points[i+5]);
+    }    
 }
 // End of new code
 
